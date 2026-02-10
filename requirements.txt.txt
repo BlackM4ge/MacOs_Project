@@ -1,0 +1,6 @@
+customtkinter
+google-generativeai
+pandas
+openpyxl
+pillow
+pyinstaller
