@@ -1,0 +1,53 @@
+name: Build MacOS App
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest  # Usiamo un vero Mac virtuale
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' # Versione stabile e compatibile
+
+    - name: Install Dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Inject API Key
+      env:
+        # Recuperiamo la chiave dal "Vault" di GitHub
+        REAL_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+        # Usiamo sed per sostituire il placeholder con la chiave vera nel codice
+        # Nota: La sintassi sed su Mac richiede '' dopo -i
+        sed -i '' "s/INCOLLA_LA_TUA_CHIAVE_QUI/$REAL_KEY/g" main.py
+        echo "Chiave API iniettata con successo."
+
+    - name: Build with PyInstaller
+      run: |
+        # --windowed: niente console nera
+        # --onefile: tutto in un pacchetto
+        # --icon: se hai un'icona .icns puoi aggiungerla qui, altrimenti usa quella default
+        pyinstaller --noconsole --onefile --windowed --name="AI_Scanner" main.py
+
+    - name: Prepare Artifact (Zip)
+      run: |
+        cd dist
+        # Zippiamo l'app mantenendo i permessi (flag -y per i symlink se ce ne fossero)
+        zip -r AI_Scanner_Mac.zip AI_Scanner.app
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Applicazione-Mac-Pronta
+        path: dist/AI_Scanner_Mac.zip
